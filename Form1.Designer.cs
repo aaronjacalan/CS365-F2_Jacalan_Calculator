@@ -410,7 +410,7 @@
 			// 
 			displayBox.BackColor = Color.FromArgb(42, 42, 42);
 			displayBox.BorderStyle = BorderStyle.None;
-			displayBox.Font = new Font("Consolas", 15F, FontStyle.Bold);
+			displayBox.Font = new Font("Consolas", 16F, FontStyle.Bold);
 			displayBox.ForeColor = Color.White;
 			displayBox.Location = new Point(5, 73);
 			displayBox.Margin = new Padding(3, 0, 3, 3);
