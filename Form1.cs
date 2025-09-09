@@ -10,21 +10,10 @@ namespace CS365___Calculator
 	{
 		private bool isDragging = false;
 		private Point startPoint = new Point(0, 0);
-
-		private decimal currentValue = 0;
-		private decimal previousValue = 0;
-		private string currentOperation = "";
-		private bool operationPending = false;
+		private string currentExpression = "";
 		private bool newInput = true;
 		private bool hasDecimal = false;
-
-		// needed for parentheses functionality
-		private Stack<decimal> valueStack = new Stack<decimal>();
-		private Stack<string> operatorStack = new Stack<string>();
-		private Stack<bool> operationPendingStack = new Stack<bool>();
 		private int openParentheses = 0;
-
-		// Easter egg tracking - enhanced to require full input sequence
 		private string easterEggSequence = "";
 
 		public Form1()
@@ -69,111 +58,70 @@ namespace CS365___Calculator
 			btnBackspace.Click += BackspaceClick;
 			btnClear.Click += ClearClick;
 			btnClearEntry.Click += ClearEntryClick;
-
-			// para magamit ang keyboard
-			this.KeyPreview = true;
-			this.KeyPress += Form1_KeyPress;
 		}
 
 		private void NumberClick(string number)
 		{
-			// Easter egg tracking - track numbers
 			TrackEasterEggInput(number);
 
-			if (newInput)
+			if (string.IsNullOrEmpty(currentExpression) || currentExpression == "0")
 			{
-				displayBox.Text = number;
-				newInput = false;
+				currentExpression = number;
 			}
 			else
 			{
-				if (displayBox.Text == "0" || displayBox.Text == "(")
-					displayBox.Text = number;
-				else
-					displayBox.Text += number;
+				currentExpression += number;
 			}
+
+			displayBox.Text = currentExpression;
+			newInput = false;
 		}
 
 		private void OperationClick(string operation)
 		{
-			// Track operations for easter egg
 			TrackEasterEggInput(operation);
-
-			if (operationPending && !newInput)
+			if (!string.IsNullOrEmpty(currentExpression) && currentExpression != "0")
 			{
-				CalculateResult();
+				currentExpression += " " + operation + " ";
+				displayBox.Text = currentExpression;
+				newInput = true;
+				hasDecimal = false;
 			}
-
-			previousValue = decimal.Parse(displayBox.Text);
-			currentOperation = operation;
-			operationPending = true;
-			newInput = true;
-			hasDecimal = false;
-
-			UpdateHistory();
 		}
 
 		private void OpenParenthesesClick(object sender, EventArgs e)
 		{
-			// Reset easter egg sequence for operations that break the flow
 			ResetEasterEggOnNonSequenceAction();
 
-			// Store current state when opening parentheses
-			valueStack.Push(previousValue);
-			operatorStack.Push(currentOperation);
-			operationPendingStack.Push(operationPending);
+			if (string.IsNullOrEmpty(currentExpression) || currentExpression == "0")
+			{
+				currentExpression = "(";
+			}
+			else
+			{
+				if (char.IsDigit(currentExpression[currentExpression.Length - 1]) || currentExpression.EndsWith(")"))
+				{
+					currentExpression += " × (";
+				}
+				else
+				{
+					currentExpression += "(";
+				}
+			}
 
-			// Reset current state for new parentheses group
-			previousValue = 0;
-			currentOperation = "";
-			operationPending = false;
 			openParentheses++;
-
-			// Show opening parenthesis in display box
-			displayBox.Text = "(";
-			historyBox.Text += "(";
+			displayBox.Text = currentExpression;
 			newInput = true;
 			hasDecimal = false;
 		}
 
 		private void CloseParenthesesClick(object sender, EventArgs e)
 		{
-			if (openParentheses > 0 && valueStack.Count > 0)
+			if (openParentheses > 0 && !string.IsNullOrEmpty(currentExpression))
 			{
-				// Calculate current expression result if there's a pending operation
-				if (operationPending)
-				{
-					currentValue = decimal.Parse(displayBox.Text);
-					CalculateResult();
-				}
-
-				// Get the result of the parentheses group
-				decimal parenthesesResult = decimal.Parse(displayBox.Text);
-
-				// Restore previous state
-				decimal storedPreviousValue = valueStack.Pop();
-				string storedOperation = operatorStack.Pop();
-				bool storedOperationPending = operationPendingStack.Pop();
-
-				// Apply the stored operation with the parentheses result
-				if (storedOperationPending && !string.IsNullOrEmpty(storedOperation))
-				{
-					previousValue = storedPreviousValue;
-					currentValue = parenthesesResult;
-					currentOperation = storedOperation;
-					CalculateResult();
-					operationPending = false;
-				}
-				else
-				{
-					displayBox.Text = FormatResult(parenthesesResult);
-					previousValue = parenthesesResult;
-					operationPending = storedOperationPending;
-					currentOperation = storedOperation;
-				}
-
+				currentExpression += ")";
 				openParentheses--;
-				historyBox.Text += ")";
+				displayBox.Text = currentExpression;
 				newInput = true;
 				hasDecimal = false;
 			}
@@ -181,68 +129,40 @@ namespace CS365___Calculator
 
 		private void EqualsClick(object sender, EventArgs e)
 		{
-			// Check for easter egg completion on equals
 			TrackEasterEggInput("=");
 
-			if (operationPending)
+			if (!string.IsNullOrEmpty(currentExpression) && currentExpression != "0")
 			{
-				currentValue = decimal.Parse(displayBox.Text);
-				CalculateResult();
-
-				historyBox.Text = $"{previousValue} {currentOperation} {currentValue} =";
-
-				operationPending = false;
-				newInput = true;
-				hasDecimal = false;
+				try
+				{
+					string originalExpression = currentExpression;
+					decimal result = EvaluateExpression(currentExpression);
+					historyBox.Text = originalExpression + " =";
+					displayBox.Text = FormatResult(result);
+					currentExpression = FormatResult(result);
+					newInput = true;
+					hasDecimal = result.ToString().Contains(".");
+				}
+				catch (Exception)
+				{
+					displayBox.Text = "Error";
+					historyBox.Text = currentExpression + " = Error";
+					currentExpression = "";
+					newInput = true;
+				}
 			}
 		}
 
-		private void CalculateResult()
+		private decimal EvaluateExpression(string expression)
 		{
-			try
-			{
-				currentValue = decimal.Parse(displayBox.Text);
-				decimal result = 0;
+			expression = expression.Replace("×", "*").Replace("÷", "/").Replace("^", "^");
+			var table = new System.Data.DataTable();
+			var result = table.Compute(expression, null);
 
-				switch (currentOperation)
-				{
-					case "+":
-						result = previousValue + currentValue;
-						break;
-					case "-":
-						result = previousValue - currentValue;
-						break;
-					case "×":
-						result = previousValue * currentValue;
-						break;
-					case "÷":
-						if (currentValue == 0)
-						{
-							displayBox.Text = "Cannot divide by zero";
-							return;
-						}
-						result = previousValue / currentValue;
-						break;
-					case "^":
-						result = (decimal)Math.Pow((double)previousValue, (double)currentValue);
-						break;
-					case "√":
-						if (currentValue == 0)
-						{
-							displayBox.Text = "Cannot calculate root with 0";
-							return;
-						}
-						result = (decimal)Math.Pow((double)previousValue, 1.0 / (double)currentValue);
-						break;
-				}
+			if (result == DBNull.Value)
+				throw new InvalidOperationException("Invalid expression");
 
-				displayBox.Text = FormatResult(result);
-				previousValue = result;
-			}
-			catch (Exception)
-			{
-				displayBox.Text = "Error";
-			}
+			return Convert.ToDecimal(result);
 		}
 
 		private string FormatResult(decimal result)
@@ -255,37 +175,64 @@ namespace CS365___Calculator
 
 		private void DecimalClick(object sender, EventArgs e)
 		{
-			// Reset easter egg sequence for non-sequence actions
 			ResetEasterEggOnNonSequenceAction();
 
-			if (newInput)
+			string[] parts = currentExpression.Split(new char[] { '+', '-', '×', '÷', '^', '√', '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
+			string lastPart = parts.Length > 0 ? parts[parts.Length - 1].Trim() : "";
+
+			if (!hasDecimal && !lastPart.Contains("."))
 			{
-				displayBox.Text = "0.";
-				newInput = false;
-				hasDecimal = true;
-			}
-			else if (!hasDecimal)
-			{
-				displayBox.Text += ".";
+				if (string.IsNullOrEmpty(currentExpression) || currentExpression == "0")
+				{
+					currentExpression = "0.";
+				}
+				else if (char.IsDigit(currentExpression[currentExpression.Length - 1]))
+				{
+					currentExpression += ".";
+				}
+				else
+				{
+					currentExpression += "0.";
+				}
+
+				displayBox.Text = currentExpression;
 				hasDecimal = true;
 			}
 		}
 
 		private void BackspaceClick(object sender, EventArgs e)
 		{
-			// Reset easter egg sequence
 			ResetEasterEggOnNonSequenceAction();
 
-			if (!newInput && displayBox.Text.Length > 1)
+			if (!string.IsNullOrEmpty(currentExpression) && currentExpression.Length > 0)
 			{
-				if (displayBox.Text[displayBox.Text.Length - 1] == '.')
+				char lastChar = currentExpression[currentExpression.Length - 1];
+
+				if (lastChar == '.')
 					hasDecimal = false;
 
-				displayBox.Text = displayBox.Text.Substring(0, displayBox.Text.Length - 1);
+				if (lastChar == '(')
+					openParentheses--;
+				else if (lastChar == ')')
+					openParentheses++;
+
+				currentExpression = currentExpression.Substring(0, currentExpression.Length - 1);
+
+				if (string.IsNullOrEmpty(currentExpression))
+				{
+					displayBox.Text = "0";
+					historyBox.Text = "";
+					newInput = true;
+				}
+				else
+				{
+					displayBox.Text = currentExpression;
+				}
 			}
 			else
 			{
 				displayBox.Text = "0";
+				currentExpression = "";
 				newInput = true;
 				hasDecimal = false;
 			}
@@ -293,90 +240,24 @@ namespace CS365___Calculator
 
 		private void ClearClick(object sender, EventArgs e)
 		{
-			// Reset easter egg sequence
 			easterEggSequence = "";
-
 			displayBox.Text = "0";
 			historyBox.Text = "";
-			currentValue = 0;
-			previousValue = 0;
-			currentOperation = "";
-			operationPending = false;
+			currentExpression = "";
 			newInput = true;
 			hasDecimal = false;
-
-			// Clear parentheses stacks
-			valueStack.Clear();
-			operatorStack.Clear();
-			operationPendingStack.Clear();
 			openParentheses = 0;
 		}
 
 		private void ClearEntryClick(object sender, EventArgs e)
 		{
 			displayBox.Text = "0";
+			currentExpression = "";
 			newInput = true;
 			hasDecimal = false;
 		}
 
-		private void UpdateHistory()
-		{
-			if (!string.IsNullOrEmpty(currentOperation))
-			{
-				historyBox.Text = $"{previousValue} {currentOperation}";
-			}
-		}
-
-		private void Form1_KeyPress(object sender, KeyPressEventArgs e)
-		{
-			switch (e.KeyChar)
-			{
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-					NumberClick(e.KeyChar.ToString());
-					break;
-				case '+':
-					OperationClick("+");
-					break;
-				case '-':
-					OperationClick("-");
-					break;
-				case '*':
-					OperationClick("×");
-					break;
-				case '/':
-					OperationClick("÷");
-					break;
-				case '.':
-					DecimalClick(null, null);
-					break;
-				case '\r': // Enter key
-					EqualsClick(null, null);
-					break;
-				case '\b': // Backspace
-					BackspaceClick(null, null);
-					break;
-				case '\x1B': // Escape key
-					ClearClick(null, null);
-					break;
-				case '(': // Open parentheses
-					OpenParenthesesClick(null, null);
-					break;
-				case ')': // Close parentheses
-					CloseParenthesesClick(null, null);
-					break;
-			}
-		}
-
-		// Title bar drag functionality
+		// Dragging the form
 		private void Drag_MouseDown(object sender, MouseEventArgs e)
 		{
 			isDragging = true;
@@ -397,7 +278,7 @@ namespace CS365___Calculator
 			isDragging = false;
 		}
 
-		// Window control buttons
+		// Minimize and Close buttons
 		private void btnMinimize_Click(object sender, EventArgs e)
 		{
 			WindowState = FormWindowState.Minimized;
@@ -408,7 +289,6 @@ namespace CS365___Calculator
 			Close();
 		}
 
-		// Close button hover effects
 		private void btnClose_MouseEnter(object sender, EventArgs e)
 		{
 			btnClose.BackColor = Color.FromArgb(255, 138, 0);
@@ -433,7 +313,7 @@ namespace CS365___Calculator
 			btnMinimize.ForeColor = Color.White;
 		}
 
-		// Enhanced Easter egg functionality
+		// Easter Egg
 		private void lblTitle_Click(object sender, EventArgs e)
 		{
 			lblTitle.Text = "input the codes for an easter egg";
@@ -474,8 +354,7 @@ namespace CS365___Calculator
 			}
 			catch (Exception)
 			{
-				displayBox.Text = "Easter Egg Activated!";
-				historyBox.Text = "Easter Egg!";
+				lblTitle.Text = "Easter Egg Activated!";
 				OpenEasterEggLink();
 			}
 		}
