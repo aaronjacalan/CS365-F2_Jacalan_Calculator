@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -20,7 +21,11 @@ namespace CS365___Calculator
 		// needed for parentheses functionality
 		private Stack<decimal> valueStack = new Stack<decimal>();
 		private Stack<string> operatorStack = new Stack<string>();
+		private Stack<bool> operationPendingStack = new Stack<bool>();
 		private int openParentheses = 0;
+
+		// Easter egg tracking - enhanced to require full input sequence
+		private string easterEggSequence = "";
 
 		public Form1()
 		{
@@ -32,8 +37,6 @@ namespace CS365___Calculator
 		{
 			displayBox.Text = "0";
 			historyBox.Text = "";
-			AlignBottom(displayBox);
-			AlignBottom(historyBox);
 		}
 
 		private void WireUpEvents()
@@ -74,6 +77,9 @@ namespace CS365___Calculator
 
 		private void NumberClick(string number)
 		{
+			// Easter egg tracking - track numbers
+			TrackEasterEggInput(number);
+
 			if (newInput)
 			{
 				displayBox.Text = number;
@@ -81,16 +87,18 @@ namespace CS365___Calculator
 			}
 			else
 			{
-				if (displayBox.Text == "0")
+				if (displayBox.Text == "0" || displayBox.Text == "(")
 					displayBox.Text = number;
 				else
 					displayBox.Text += number;
 			}
-			AlignBottom(displayBox);
 		}
 
 		private void OperationClick(string operation)
 		{
+			// Track operations for easter egg
+			TrackEasterEggInput(operation);
+
 			if (operationPending && !newInput)
 			{
 				CalculateResult();
@@ -107,78 +115,81 @@ namespace CS365___Calculator
 
 		private void OpenParenthesesClick(object sender, EventArgs e)
 		{
-			// Store current state when opening parentheses
-			if (operationPending)
-			{
-				valueStack.Push(previousValue);
-				operatorStack.Push(currentOperation);
-			}
-			else
-			{
-				valueStack.Push(decimal.Parse(displayBox.Text));
-				operatorStack.Push("");
-			}
+			// Reset easter egg sequence for operations that break the flow
+			ResetEasterEggOnNonSequenceAction();
 
+			// Store current state when opening parentheses
+			valueStack.Push(previousValue);
+			operatorStack.Push(currentOperation);
+			operationPendingStack.Push(operationPending);
+
+			// Reset current state for new parentheses group
+			previousValue = 0;
+			currentOperation = "";
+			operationPending = false;
 			openParentheses++;
-			displayBox.Text = "0";
+
+			// Show opening parenthesis in display box
+			displayBox.Text = "(";
 			historyBox.Text += "(";
 			newInput = true;
 			hasDecimal = false;
-			operationPending = false;
-			AlignBottom(displayBox);
-			AlignBottom(historyBox);
 		}
 
 		private void CloseParenthesesClick(object sender, EventArgs e)
 		{
 			if (openParentheses > 0 && valueStack.Count > 0)
 			{
-				// Calculate current expression result
-				decimal currentResult = decimal.Parse(displayBox.Text);
-
+				// Calculate current expression result if there's a pending operation
 				if (operationPending)
 				{
-					currentValue = currentResult;
+					currentValue = decimal.Parse(displayBox.Text);
 					CalculateResult();
-					currentResult = decimal.Parse(displayBox.Text);
 				}
 
-				// Restore previous state
-				decimal storedValue = valueStack.Pop();
-				string storedOperation = operatorStack.Pop();
+				// Get the result of the parentheses group
+				decimal parenthesesResult = decimal.Parse(displayBox.Text);
 
-				if (!string.IsNullOrEmpty(storedOperation))
+				// Restore previous state
+				decimal storedPreviousValue = valueStack.Pop();
+				string storedOperation = operatorStack.Pop();
+				bool storedOperationPending = operationPendingStack.Pop();
+
+				// Apply the stored operation with the parentheses result
+				if (storedOperationPending && !string.IsNullOrEmpty(storedOperation))
 				{
-					// Apply the stored operation
-					previousValue = storedValue;
-					currentValue = currentResult;
+					previousValue = storedPreviousValue;
+					currentValue = parenthesesResult;
 					currentOperation = storedOperation;
 					CalculateResult();
+					operationPending = false;
 				}
 				else
 				{
-					displayBox.Text = FormatResult(currentResult);
+					displayBox.Text = FormatResult(parenthesesResult);
+					previousValue = parenthesesResult;
+					operationPending = storedOperationPending;
+					currentOperation = storedOperation;
 				}
 
 				openParentheses--;
 				historyBox.Text += ")";
 				newInput = true;
 				hasDecimal = false;
-				operationPending = false;
-				AlignBottom(displayBox);
-				AlignBottom(historyBox);
 			}
 		}
 
 		private void EqualsClick(object sender, EventArgs e)
 		{
+			// Check for easter egg completion on equals
+			TrackEasterEggInput("=");
+
 			if (operationPending)
 			{
 				currentValue = decimal.Parse(displayBox.Text);
 				CalculateResult();
 
 				historyBox.Text = $"{previousValue} {currentOperation} {currentValue} =";
-				AlignBottom(historyBox);
 
 				operationPending = false;
 				newInput = true;
@@ -232,8 +243,6 @@ namespace CS365___Calculator
 			{
 				displayBox.Text = "Error";
 			}
-
-			AlignBottom(displayBox);
 		}
 
 		private string FormatResult(decimal result)
@@ -246,6 +255,9 @@ namespace CS365___Calculator
 
 		private void DecimalClick(object sender, EventArgs e)
 		{
+			// Reset easter egg sequence for non-sequence actions
+			ResetEasterEggOnNonSequenceAction();
+
 			if (newInput)
 			{
 				displayBox.Text = "0.";
@@ -257,11 +269,13 @@ namespace CS365___Calculator
 				displayBox.Text += ".";
 				hasDecimal = true;
 			}
-			AlignBottom(displayBox);
 		}
 
 		private void BackspaceClick(object sender, EventArgs e)
 		{
+			// Reset easter egg sequence
+			ResetEasterEggOnNonSequenceAction();
+
 			if (!newInput && displayBox.Text.Length > 1)
 			{
 				if (displayBox.Text[displayBox.Text.Length - 1] == '.')
@@ -275,11 +289,13 @@ namespace CS365___Calculator
 				newInput = true;
 				hasDecimal = false;
 			}
-			AlignBottom(displayBox);
 		}
 
 		private void ClearClick(object sender, EventArgs e)
 		{
+			// Reset easter egg sequence
+			easterEggSequence = "";
+
 			displayBox.Text = "0";
 			historyBox.Text = "";
 			currentValue = 0;
@@ -292,10 +308,8 @@ namespace CS365___Calculator
 			// Clear parentheses stacks
 			valueStack.Clear();
 			operatorStack.Clear();
+			operationPendingStack.Clear();
 			openParentheses = 0;
-
-			AlignBottom(displayBox);
-			AlignBottom(historyBox);
 		}
 
 		private void ClearEntryClick(object sender, EventArgs e)
@@ -303,7 +317,6 @@ namespace CS365___Calculator
 			displayBox.Text = "0";
 			newInput = true;
 			hasDecimal = false;
-			AlignBottom(displayBox);
 		}
 
 		private void UpdateHistory()
@@ -311,7 +324,6 @@ namespace CS365___Calculator
 			if (!string.IsNullOrEmpty(currentOperation))
 			{
 				historyBox.Text = $"{previousValue} {currentOperation}";
-				AlignBottom(historyBox);
 			}
 		}
 
@@ -362,13 +374,6 @@ namespace CS365___Calculator
 					CloseParenthesesClick(null, null);
 					break;
 			}
-		}
-
-		private void AlignBottom(RichTextBox box)
-		{
-			box.SelectionAlignment = HorizontalAlignment.Right;
-			box.SelectionStart = box.Text.Length;
-			box.ScrollToCaret();
 		}
 
 		// Title bar drag functionality
@@ -428,10 +433,67 @@ namespace CS365___Calculator
 			btnMinimize.ForeColor = Color.White;
 		}
 
-		// easter eggs
+		// Enhanced Easter egg functionality
 		private void lblTitle_Click(object sender, EventArgs e)
 		{
-			lblTitle.Text = "Balls";
+			lblTitle.Text = "input the codes for an easter egg";
+		}
+
+		private void TrackEasterEggInput(string input)
+		{
+			easterEggSequence += input;
+
+			if (easterEggSequence.Contains("7355608×69÷420="))
+			{
+				easterEggSequence = "";
+				TriggerEasterEgg();
+			}
+
+			if (easterEggSequence.Length > 50)
+			{
+				easterEggSequence = easterEggSequence.Substring(easterEggSequence.Length - 50);
+			}
+		}
+
+		private void ResetEasterEggOnNonSequenceAction()
+		{
+			easterEggSequence = "";
+		}
+
+		private void TriggerEasterEgg()
+		{
+			try
+			{
+				decimal step1 = 7355608 * 69;
+				decimal result = step1 / 420;
+
+				historyBox.Text = "7355608 × 69 ÷ 420 = Easter Egg!";
+				displayBox.Text = FormatResult(result);
+
+				OpenEasterEggLink();
+			}
+			catch (Exception)
+			{
+				displayBox.Text = "Easter Egg Activated!";
+				historyBox.Text = "Easter Egg!";
+				OpenEasterEggLink();
+			}
+		}
+
+		private void OpenEasterEggLink()
+		{
+			try
+			{
+				Process.Start(new ProcessStartInfo
+				{
+					FileName = "https://www.youtube.com/watch?v=uaui_lt5LtQ",
+					UseShellExecute = true
+				});
+			}
+			catch (Exception)
+			{
+				MessageBox.Show("Easter Egg Activated! 🎉", "Surprise!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
 		}
 	}
 }

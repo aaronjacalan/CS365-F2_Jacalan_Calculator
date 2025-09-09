@@ -410,36 +410,35 @@
 			// 
 			displayBox.BackColor = Color.FromArgb(42, 42, 42);
 			displayBox.BorderStyle = BorderStyle.None;
-			displayBox.Font = new Font("Consolas", 18F, FontStyle.Bold);
+			displayBox.Font = new Font("Consolas", 20F, FontStyle.Bold);
 			displayBox.ForeColor = Color.White;
 			displayBox.Location = new Point(5, 83);
 			displayBox.Margin = new Padding(3, 0, 3, 3);
 			displayBox.Multiline = false;
 			displayBox.Name = "displayBox";
 			displayBox.ReadOnly = true;
-			displayBox.RightToLeft = RightToLeft.Yes;
 			displayBox.ScrollBars = RichTextBoxScrollBars.None;
 			displayBox.Size = new Size(334, 102);
 			displayBox.TabIndex = 5;
-			displayBox.Text = "123647381";
+			displayBox.Text = "1234567890";
 			// 
 			// historyBox
 			// 
 			historyBox.BackColor = Color.FromArgb(42, 42, 42);
 			historyBox.BorderStyle = BorderStyle.None;
-			historyBox.Font = new Font("Consolas", 15F, FontStyle.Bold);
+			historyBox.Font = new Font("Consolas", 14F, FontStyle.Bold);
 			historyBox.ForeColor = SystemColors.WindowFrame;
 			historyBox.Location = new Point(5, 38);
 			historyBox.Margin = new Padding(3, 3, 3, 0);
 			historyBox.Multiline = false;
 			historyBox.Name = "historyBox";
 			historyBox.ReadOnly = true;
-			historyBox.RightToLeft = RightToLeft.Yes;
+			historyBox.RightToLeft = RightToLeft.No;
 			historyBox.ScrollBars = RichTextBoxScrollBars.None;
 			historyBox.ShowSelectionMargin = true;
 			historyBox.Size = new Size(334, 45);
 			historyBox.TabIndex = 30;
-			historyBox.Text = "123647381";
+			historyBox.Text = "0987654321";
 			// 
 			// btnClose
 			// 
