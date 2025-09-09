@@ -1,5 +1,5 @@
 <h1 align = "center"><b>very good calculator app yes very nice</b></h1>
-<h1 align="center"><b>Calculator App</b></h1>
+<h2 align="center"><b>Calculator App</b></h2>
 
 <p align="center">
 A clean and simple calculator built with <b>C#</b> and <b>.NET 9.0</b> using <b>Visual Studio</b>.
