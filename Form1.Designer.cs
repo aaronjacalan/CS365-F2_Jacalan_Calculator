@@ -425,7 +425,7 @@
 			// 
 			historyBox.BackColor = Color.FromArgb(42, 42, 42);
 			historyBox.BorderStyle = BorderStyle.None;
-			historyBox.Font = new Font("Consolas", 10F, FontStyle.Bold);
+			historyBox.Font = new Font("Consolas", 11F, FontStyle.Bold);
 			historyBox.ForeColor = SystemColors.WindowFrame;
 			historyBox.Location = new Point(5, 41);
 			historyBox.Margin = new Padding(3, 3, 3, 0);
