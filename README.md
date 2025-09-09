@@ -3,10 +3,9 @@
 <p align="center">
   A clean and simple calculator built with <b>C#</b> and <b>.NET 9.0</b> using <b>Visual Studio</b>.
 </p>
+<img width="138" height="231" alt="Image" src="https://github.com/user-attachments/assets/4f4a5f41-b1f7-4891-be12-7adeff971c0f" />
 
-<img width="346" height="577" alt="Image" src="https://github.com/user-attachments/assets/4f4a5f41-b1f7-4891-be12-7adeff971c0f" />
-
-<h3 align="center">Features</h3>
+<br> <h3 align="center">Features</h3>
 
 <p align="center">
 <b>• Basic arithmetic:</b> addition, subtraction, multiplication, division <br>
