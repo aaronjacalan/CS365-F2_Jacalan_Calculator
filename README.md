@@ -1,13 +1,16 @@
 <h1 align = "center"><b>very good calculator app yes very nice</b></h1>
+<h1 align="center"><b>Calculator App</b></h1>
 
 <p align="center">
-A simple calculator built in C# with .NET 9.0 using Visual Studio.
+A clean and simple calculator built with <b>C#</b> and <b>.NET 9.0</b> using <b>Visual Studio</b>.
+</p>
 
-<h3>Features:</h3>
-<b>Basic arithmetic:</b> addition, subtraction, multiplication, division
-<b>Power operations:</b> exponents, squares, and more
+<h3 align="center">✨ Features</h3>
 
-Lightweight, easy to use, and perfect for quick calculations.
+<p align="center">
+<b>• Basic arithmetic:</b> addition, subtraction, multiplication, division <br>
+<b>• Power operations:</b> exponents, squares, and more <br>
+<b>• Lightweight & easy to use:</b> perfect for quick calculations
 </p>
 
 <p align="center">
