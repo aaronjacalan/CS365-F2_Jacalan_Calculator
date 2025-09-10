@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 
 namespace CS365___Calculator
 {
@@ -20,6 +21,7 @@ namespace CS365___Calculator
 		{
 			InitializeComponent();
 			WireUpEvents();
+			SetupKeyboardHandling();
 		}
 
 		private void Form1_Load(object sender, EventArgs e)
@@ -28,6 +30,142 @@ namespace CS365___Calculator
 			historyBox.Text = "";
 		}
 
+		// Setup keyboard input handling
+		private void SetupKeyboardHandling()
+		{
+			this.KeyPreview = true;
+			this.KeyDown += Form1_KeyDown;
+			this.KeyPress += Form1_KeyPress;
+			this.TabStop = true;
+			this.Focus();
+		}
+
+		// keyboard input handling
+		private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+		{
+			if (char.IsDigit(e.KeyChar))
+			{
+				NumberClick(e.KeyChar.ToString());
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '+')
+			{
+				OperationClick("+");
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '-')
+			{
+				OperationClick("-");
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '*')
+			{
+				OperationClick("×");
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '/')
+			{
+				OperationClick("÷");
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '.')
+			{
+				DecimalClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '(')
+			{
+				OpenParenthesesClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyChar == ')')
+			{
+				CloseParenthesesClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '^')
+			{
+				OperationClick("^");
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '=')
+			{
+				EqualsClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '\r')
+			{
+				EqualsClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyChar == '\b')
+			{
+				BackspaceClick(null, null);
+				e.Handled = true;
+			}
+		}
+
+		private void Form1_KeyDown(object sender, KeyEventArgs e)
+		{
+			if ((e.KeyCode >= Keys.NumPad0 && e.KeyCode <= Keys.NumPad9))
+			{
+				string number = ((int)(e.KeyCode - Keys.NumPad0)).ToString();
+				NumberClick(number);
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Add)
+			{
+				OperationClick("+");
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Subtract)
+			{
+				OperationClick("-");
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Multiply)
+			{
+				OperationClick("×");
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Divide)
+			{
+				OperationClick("÷");
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Decimal)
+			{
+				DecimalClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Enter)
+			{
+				EqualsClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Back || e.KeyCode == Keys.Delete)
+			{
+				BackspaceClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Escape)
+			{
+				ClearClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.Delete && e.Control)
+			{
+				ClearEntryClick(null, null);
+				e.Handled = true;
+			}
+			else if (e.KeyCode == Keys.R)
+			{
+				OperationClick("√");
+				e.Handled = true;
+			}
+		}
+
+		// Wire up button events
 		private void WireUpEvents()
 		{
 			// Numbers
@@ -60,6 +198,7 @@ namespace CS365___Calculator
 			btnClearEntry.Click += ClearEntryClick;
 		}
 
+		// Button click handlers
 		private void NumberClick(string number)
 		{
 			TrackEasterEggInput(number);
@@ -77,6 +216,7 @@ namespace CS365___Calculator
 			newInput = false;
 		}
 
+		// Operation handler
 		private void OperationClick(string operation)
 		{
 			TrackEasterEggInput(operation);
@@ -89,6 +229,7 @@ namespace CS365___Calculator
 			}
 		}
 
+		// Parentheses handlers
 		private void OpenParenthesesClick(object sender, EventArgs e)
 		{
 			ResetEasterEggOnNonSequenceAction();
@@ -127,6 +268,7 @@ namespace CS365___Calculator
 			}
 		}
 
+		// Equals handler
 		private void EqualsClick(object sender, EventArgs e)
 		{
 			TrackEasterEggInput("=");
@@ -153,9 +295,20 @@ namespace CS365___Calculator
 			}
 		}
 
+		// Expression evaluation
 		private decimal EvaluateExpression(string expression)
 		{
-			expression = expression.Replace("×", "*").Replace("÷", "/").Replace("^", "^");
+			expression = expression.Trim();
+
+			// Handle square root operations first (second number ^ (1/first number))
+			expression = ProcessSquareRoots(expression);
+
+			// Handle power operations (first number ^ second number)
+			expression = ProcessPowers(expression);
+
+			// Replace remaining operators for DataTable.Compute
+			expression = expression.Replace("×", "*").Replace("÷", "/");
+
 			var table = new System.Data.DataTable();
 			var result = table.Compute(expression, null);
 
@@ -165,6 +318,49 @@ namespace CS365___Calculator
 			return Convert.ToDecimal(result);
 		}
 
+		private string ProcessSquareRoots(string expression)
+		{
+			// Pattern: number √ number (first number is the root, second number is the base)
+			var rootPattern = @"(\d+(?:\.\d+)?)\s*√\s*(\d+(?:\.\d+)?)";
+
+			while (Regex.IsMatch(expression, rootPattern))
+			{
+				expression = Regex.Replace(expression, rootPattern, match =>
+				{
+					decimal rootValue = decimal.Parse(match.Groups[1].Value);
+					decimal baseValue = decimal.Parse(match.Groups[2].Value);
+
+					// Calculate: baseValue ^ (1/rootValue)
+					double result = Math.Pow((double)baseValue, 1.0 / (double)rootValue);
+					return result.ToString();
+				});
+			}
+
+			return expression;
+		}
+
+		private string ProcessPowers(string expression)
+		{
+			// Pattern: number ^ number (first number raised to the power of second number)
+			var powerPattern = @"(\d+(?:\.\d+)?)\s*\^\s*(\d+(?:\.\d+)?)";
+
+			while (Regex.IsMatch(expression, powerPattern))
+			{
+				expression = Regex.Replace(expression, powerPattern, match =>
+				{
+					decimal baseValue = decimal.Parse(match.Groups[1].Value);
+					decimal exponentValue = decimal.Parse(match.Groups[2].Value);
+
+					// Calculate: baseValue ^ exponentValue
+					double result = Math.Pow((double)baseValue, (double)exponentValue);
+					return result.ToString();
+				});
+			}
+
+			return expression;
+		}
+
+		// Format result for display
 		private string FormatResult(decimal result)
 		{
 			if (result == Math.Floor(result) && result <= decimal.MaxValue)
@@ -173,6 +369,7 @@ namespace CS365___Calculator
 				return result.ToString("0.##########");
 		}
 
+		// Other button handlers
 		private void DecimalClick(object sender, EventArgs e)
 		{
 			ResetEasterEggOnNonSequenceAction();
@@ -238,6 +435,7 @@ namespace CS365___Calculator
 			}
 		}
 
+		// Clear and Clear Entry handlers
 		private void ClearClick(object sender, EventArgs e)
 		{
 			easterEggSequence = "";
@@ -347,7 +545,7 @@ namespace CS365___Calculator
 				decimal step1 = 7355608 * 69;
 				decimal result = step1 / 420;
 
-				historyBox.Text = "7355608 × 69 ÷ 420 = Easter Egg!";
+				historyBox.Text = "7355608 × 69 ÷ 420 = suprise";
 				displayBox.Text = FormatResult(result);
 
 				OpenEasterEggLink();
@@ -371,7 +569,7 @@ namespace CS365___Calculator
 			}
 			catch (Exception)
 			{
-				MessageBox.Show("Easter Egg Activated! 🎉", "Surprise!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				
 			}
 		}
 	}
